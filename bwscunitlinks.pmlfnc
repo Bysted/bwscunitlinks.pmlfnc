@@ -1,0 +1,119 @@
+--------------------------------------------------------------
+--   Copyright ©   Plantcon A/S 2019 -
+--  ----------------------------------------------------------
+--
+--  File:       bwscunitlinks.pmlfnc
+--     Type:    Function Definition
+--     Module:  Design
+--     Keyword: MTO 
+--  ----------------------------------------------------------
+--
+--  Author:     Kurt Engelst Kærgaard / PLANTCON a/s
+--
+--  STATUS      DATE          BY    REVISION
+--  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--  Created:    07-Nov-2019   KEK   1,0,0,0 
+--
+--  ----------------------------------------------------------
+--
+--  Description: Make Reports unit Links
+--  ----------------------------------------------------------
+--
+--  Revision history:
+--  1,0,0,0
+--          Function created
+--
+--------------------------------------------------------------------
+define function !!bwscunitlinks()
+   !hervarvi = !!CE.Refe
+-- Be sure all old report files closes now
+   do !i from 1 to 10
+      closefile $!i
+      handle any
+      endhandle
+   enddo
+ 
+   !CP = object Project()
+   !CP = CURRENT PROJECT
+
+   !projnam = !CP.Name()
+   !projnum = !CP.Number()
+   !projdes = !CP.Description()  
+ 
+   !selection   = Object Array()
+   !d1   = Object Array()
+   !d2   = Object Array()
+   !d3   = Object Array()  
+
+--======================================================
+ 
+
+   mm bore mm distance
+
+   var !sep |;|
+   var !del |"|
+   var !del1 |'|
+   var !del2 '|'
+ 
+   !filename = '\\arkiv.bwsc.dk\Aveva\Navisworks\' & '$!projnum' & '\Unit-Links.csv'
+   syscom|del /F /Q $!filename |
+
+   if ( !filename.Empty() eq false ) then
+       !outfile = object FILE(!filename)
+       if( !outfile.Exists() ) then
+          !outfile.Open( 'overwrite' )
+          handle (41,324)
+          endhandle
+       else
+           -- The file does not exist, so we create it
+           !outfile.Open( 'write' )
+       endif
+   endif
+
+
+--   onerror golabel /closefile
+
+   !selection.Clear() 
+  
+   !selection.AppendArray(!!placollallfor('LNDESC','( Url ne || )', /UNIT-DOCUMENTS )) 
+   
+
+-- If any selected component not have a SPREF we have an error - no use to continue
+
+   do !j indices !selection
+
+       !d1[$!j] = !selection[$!j].Owner.Name
+       handle any
+           !d1[$!j] = ''
+       endhandle
+
+       !d2[$!j] = !selection[$!j].Url.Substring(8)
+       handle any
+             !d2[$!j]  = ''
+       endhandle
+
+       !d3[$!j] = !selection[$!j].LnkEle[1].Name
+       handle any
+           !d3[$!j] = !selection[$!j].LnkEle[1].String()
+       endhandle
+      
+   enddo
+ 
+   do !i indices !d1 
+      !v1  = !d1[$!i]
+      !v2  = !d2[$!i]
+      !v3  = !d3[$!i] 
+      !line = |$!del| + |$!v1| + |$!del| $
++ | | $
++ |$!del| + |$!v2| + |$!del| $
++ | | $
++ |$!del| + |$!v3| + |$!del| $ 
+                 
+      !outfile.WriteRecord(vtext(!line))
+   enddo
+
+   if (vtext(!filename) ne ||) then
+      !outfile.Close()
+   endif 
+   $!hervarvi 
+endFunction
